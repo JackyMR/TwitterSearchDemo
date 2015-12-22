@@ -6,6 +6,6 @@ package com.yuan.twittersearchdemo.Utils;
 public class Log {
 
     public static final int i (String log){
-        return android.util.Log.i("yuan",log);
+        return android.util.Log.i("twittersearchdemo","yuan : " + log);
     }
 }

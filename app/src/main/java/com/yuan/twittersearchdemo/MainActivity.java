@@ -1,46 +1,99 @@
 package com.yuan.twittersearchdemo;
 
+import android.os.AsyncTask;
+import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.CardView;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.yuan.twittersearchdemo.Utils.CommonUtil;
+import com.yuan.twittersearchdemo.Utils.Log;
 import com.yuan.twittersearchdemo.api.API;
 
 import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+
+    private TextView textView;
+    private EditText editText;
+    private ImageView btn_search;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
+        initView();
 
-                    API.search("#123","12", CommonUtil.getLocalLang(MainActivity.this));
+        new AsyncTask<Void, Integer, String>() {
+            @Override
+            protected String doInBackground(Void... params) {
+                try {
+                    return API.search("android",null,CommonUtil.getLocalLang(MainActivity.this));
                 } catch (IOException e) {
                     e.printStackTrace();
+                    return null;
                 }
             }
-        }).start();
+
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                if(TextUtils.isEmpty(s)) s = "netfail";
+                textView.setText(s);
+            }
+        }.execute();
     }
 
+    private void initView(){
+        textView = (TextView) findViewById(R.id.text);
+        editText = (EditText) findViewById(R.id.edit_text_search);
+        editText.addTextChangedListener(watcher);
 
-    /*
-    Authorization:
-    OAuth oauth_consumer_key="DC0sePOBbQ8bYdC8r4Smg",
-    oauth_signature_method="HMAC-SHA1",
-    oauth_timestamp="1450684903",oauth_nonce="3361723282",
-    oauth_version="1.0",
-    oauth_token="4619675898-a7gyTVh67uMcPbTI8n1oVSObE4jPqBESSSwXdA7",
-    oauth_signature="xEkQD4k8XS%2F3xorPL7tvxmiEtV4%3D"
-    Host:
-    api.twitter.com
-    X-Target-URI:
-    https://api.twitter.com
-    Connection:
-    Keep-Alive
-     */
+        btn_search = (ImageView)findViewById(R.id.iv_bottom_search);
+        btn_search.setOnClickListener(this);
+        btn_search.setVisibility(View.GONE);
+
+    }
+
+    private TextWatcher watcher = new TextWatcher() {
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+
+            if(s.toString().length() > 0){
+                btn_search.setVisibility(View.VISIBLE);
+            }else{
+                btn_search.setVisibility(View.GONE);
+            }
+        }
+    };
+
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.iv_bottom_search:
+                if(editText.getText().toString().length() ==0){
+                    editText.setError("请输入内容!");
+                }
+                break;
+        }
+    }
 }
