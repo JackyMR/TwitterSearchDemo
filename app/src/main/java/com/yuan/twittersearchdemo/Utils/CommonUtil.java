@@ -1,4 +1,4 @@
-package com.yuan.twittersearchdemo.Utils;
+package com.yuan.twittersearchdemo.utils;
 
 import android.app.Activity;
 import android.content.Context;

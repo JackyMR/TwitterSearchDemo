@@ -6,7 +6,7 @@ import android.os.Parcelable;
 /**
  * Created by Yuan on 15/12/22.
  */
-public class SearchEntity implements Parcelable {
+public class Status implements Parcelable {
 
     public Meta meta;
 
@@ -30,9 +30,9 @@ public class SearchEntity implements Parcelable {
 
     public String lang;
 
-    public SearchEntity(){}
+    public Status(){}
 
-    protected SearchEntity(Parcel in) {
+    protected Status(Parcel in) {
         meta = in.readParcelable(Meta.class.getClassLoader());
         id = in.readLong();
         id_str = in.readString();
@@ -46,15 +46,15 @@ public class SearchEntity implements Parcelable {
         lang = in.readString();
     }
 
-    public static final Creator<SearchEntity> CREATOR = new Creator<SearchEntity>() {
+    public static final Creator<Status> CREATOR = new Creator<Status>() {
         @Override
-        public SearchEntity createFromParcel(Parcel in) {
-            return new SearchEntity(in);
+        public Status createFromParcel(Parcel in) {
+            return new Status(in);
         }
 
         @Override
-        public SearchEntity[] newArray(int size) {
-            return new SearchEntity[size];
+        public Status[] newArray(int size) {
+            return new Status[size];
         }
     };
 

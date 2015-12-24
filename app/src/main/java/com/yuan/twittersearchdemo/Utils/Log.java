@@ -1,4 +1,4 @@
-package com.yuan.twittersearchdemo.Utils;
+package com.yuan.twittersearchdemo.utils;
 
 /**
  * Created by Yuan on 15/12/21.

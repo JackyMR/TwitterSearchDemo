@@ -17,10 +17,11 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.yuan.twittersearchdemo.Utils.CommonUtil;
+import com.yuan.twittersearchdemo.utils.CommonUtil;
 import com.yuan.twittersearchdemo.adapter.SearchAdapter;
 import com.yuan.twittersearchdemo.api.API;
-import com.yuan.twittersearchdemo.model.SearchEntity;
+import com.yuan.twittersearchdemo.model.Status;
+import com.yuan.twittersearchdemo.utils.SpUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,13 +39,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private SearchAdapter adapter;
 
-    private List<SearchEntity> mData = new ArrayList<>();
+    private List<Status> mData = new ArrayList<>();
+
+    private SpUtil spUtil;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
+        spUtil = SpUtil.getInstance(this);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
+                    try {
+                        String token = API.oauth2token();
+                        if (TextUtils.isEmpty(token)) {
+                            spUtil.put(SpUtil.ACCESS_TOKEN, token);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
     private void initView() {
@@ -66,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mRecyclerView.setAdapter(adapter = new SearchAdapter(this,mData));
+        mRecyclerView.setAdapter(adapter = new SearchAdapter(this, mData));
 
         progressview = findViewById(R.id.lay_loading);
     }
@@ -92,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (len > 0) {
                 Message msg = Message.obtain();
                 msg.what = len;
-                hanlder.sendMessageDelayed(msg, 400);
+                hanlder.sendMessageDelayed(msg, 500);
             }
         }
 
@@ -107,16 +126,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            if(msg.what == editText.getText().toString().length()){
+            if (msg.what == editText.getText().toString().length()) {
                 excuteAsync(editText.getText().toString());
             }
         }
 
     };
 
-    private void excuteAsync(String content){
+    private void excuteAsync(String content) {
         searchAsync = new SearchAsync();
-        searchAsync.execute(content,null,CommonUtil.getLocalLang());
+        searchAsync.execute(content, null, CommonUtil.getLocalLang());
     }
 
     @Override
@@ -127,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * 使用AsyncTask请求数据
      */
-    class SearchAsync extends AsyncTask<String, Integer, List<SearchEntity>> {
+    class SearchAsync extends AsyncTask<String, Integer, List<Status>> {
 
         @Override
         protected void onPreExecute() {
@@ -137,9 +156,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         @Override
-        protected List<SearchEntity> doInBackground(String... params) {
+        protected List<com.yuan.twittersearchdemo.model.Status> doInBackground(String... params) {
             try {
-                return API.search(params[0], params[1], params[2]);
+                return API.search(spUtil.getString(SpUtil.ACCESS_TOKEN), params[0], params[1], params[2], null);
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
@@ -147,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         @Override
-        protected void onPostExecute(List<SearchEntity> data) {
+        protected void onPostExecute(List<com.yuan.twittersearchdemo.model.Status> data) {
             super.onPostExecute(data);
             progressview.setVisibility(View.GONE);
             mRecyclerView.setVisibility(View.VISIBLE);
@@ -156,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mData.clear();
                 mData.addAll(data);
                 adapter.notifyDataSetChanged();
-            }else {
+            } else {
                 Snackbar.make(editText, "none", Snackbar.LENGTH_LONG).show();
             }
         }

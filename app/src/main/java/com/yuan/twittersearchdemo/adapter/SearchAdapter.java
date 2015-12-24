@@ -10,7 +10,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.yuan.twittersearchdemo.R;
-import com.yuan.twittersearchdemo.model.SearchEntity;
+import com.yuan.twittersearchdemo.model.Status;
 
 import java.util.List;
 
@@ -21,9 +21,9 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
 
     private Context mContext;
 
-    private List<SearchEntity> mData;
+    private List<Status> mData;
 
-    public SearchAdapter(@NonNull Context ctx,@NonNull List<SearchEntity> list){
+    public SearchAdapter(@NonNull Context ctx,@NonNull List<Status> list){
         this.mContext = ctx;
         this.mData = list;
     }
@@ -37,7 +37,7 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        SearchEntity entity = mData.get(position);
+        Status entity = mData.get(position);
         holder.text_username.setText(entity.user.name);
         holder.text_content.setText(entity.text);
     }
