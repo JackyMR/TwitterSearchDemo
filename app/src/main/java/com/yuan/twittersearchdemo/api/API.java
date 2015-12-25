@@ -5,13 +5,13 @@ import android.text.TextUtils;
 import android.util.Base64;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ResponseBody;
+import com.yuan.twittersearchdemo.model.SearchEntity;
 import com.yuan.twittersearchdemo.utils.Log;
 import com.yuan.twittersearchdemo.model.Status;
 
@@ -21,9 +21,7 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Random;
@@ -41,7 +39,63 @@ public class API {
 
     public static final String OAUTH_CONSUMER_SECRET = "14UNt7btzWOH0dB3UtpeGDGDExF01W5axKdzNtui5WqAk8gwvD";
 
-    public static List<Status> search(String token,String... webargs) throws IOException {
+    /**
+     * 使用okHTTP解析返回的json会抛出"org.json.JSONException: End of input at character 0 of "
+     * @param token
+     * @param webargs
+     * @return
+     * @throws IOException
+     */
+    public static List<Status> search(String token, String... webargs) throws IOException {
+        StringBuilder url = new StringBuilder(API + "/1.1/search/tweets.json?");
+        if (!TextUtils.isEmpty(webargs[0])) {
+            url.append("q=" + Uri.encode(webargs[0]));
+        }
+        if (!TextUtils.isEmpty(webargs[1])) {
+            url.append("&geo=" + Uri.encode(webargs[1]));
+        }
+        if (!TextUtils.isEmpty(webargs[2])) {
+            url.append("&lang=" + Uri.encode(webargs[2]));
+        }
+        if (TextUtils.isEmpty(webargs[3])) {
+            webargs[3] = "2";
+        }
+        url.append("&count=" + Uri.encode(webargs[3]));
+
+
+        Log.i("url = " + url.toString());
+
+        OkHttpClient client = new OkHttpClient();
+        client.setConnectTimeout(5, TimeUnit.SECONDS);
+
+        String auth = "Bearer " + token;
+        Request request = new Request.Builder()
+                .url(url.toString())
+                .header("Authorization", auth)
+                .build();
+
+        Response response = client.newCall(request).execute();
+        ResponseBody body = response.body();
+        Log.i("res = " + "code " + response.code() + "/ header " + response.headers());
+        Log.i("res body = " + "\n" + body.string());
+        if (response.isSuccessful()) {
+            //Gson gson = new Gson();
+            //SearchEntity entity = gson.fromJson(body.string(), SearchEntity.class);
+            SearchEntity entity = null;
+            try {
+                entity = new SearchEntity(new JSONObject(body.string()));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            Log.i("entity = " + entity);
+            body.close();
+            return entity.statuses;
+        }
+        body.close();
+        return null;
+    }
+
+    public static List<Status> search2(String token, String... webargs) throws IOException {
         StringBuilder url = new StringBuilder(API + "/1.1/search/tweets.json?");
         if (!TextUtils.isEmpty(webargs[0])) {
             url.append("q=" + Uri.encode(webargs[0]));
@@ -60,27 +114,39 @@ public class API {
 
         Log.i("url = " + url.toString());
 
-        OkHttpClient client = new OkHttpClient();
-        client.setConnectTimeout(5, TimeUnit.SECONDS);
+        URL urlcon = new URL(url.toString());
+        HttpURLConnection connection = (HttpURLConnection) urlcon.openConnection();
+        connection.setConnectTimeout(7000);
+        connection.setReadTimeout(7000);
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Authorization", "Bearer " + token);
 
-        String auth = "Bearer " + token;
-        Request request = new Request.Builder()
-                .url(url.toString())
-                .header("Authorization", auth)
-                .build();
+        if (connection.getResponseCode() == 200) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
+            byte[] buffer = new byte[1024 * 8];
+            int len = 0;
+            while((len = bis.read(buffer,0,buffer.length)) != -1){
+                baos.write(buffer,0,len);
+            }
+            baos.flush();
+            String body = new String(baos.toByteArray(),"UTF-8");
+            baos.close();
+            Log.i("body " + body);
+            SearchEntity entity = null;
 
-        Response response = client.newCall(request).execute();
-        ResponseBody body = response.body();
-        Log.i("res = " + "code " + response.code() + "/" + body.string());
-        if (response.isSuccessful()) {
-            TypeToken<List<Status>> ENTITY = new TypeToken<List<Status>>() {
-            };
+            //自己写解析的正确
+//            try {
+//                entity = new SearchEntity(new JSONObject(body));
+//            } catch (JSONException e) {
+//                e.printStackTrace();
+//            }
+            //GSON
             Gson gson = new Gson();
-            List<Status> list = gson.fromJson(body.charStream(), ENTITY.getType());
-            body.close();
-            return list;
+            entity = gson.fromJson(body,SearchEntity.class);
+            Log.i("entity = " + entity);
+            return entity.statuses;
         }
-        body.close();
         return null;
     }
 
@@ -120,6 +186,7 @@ public class API {
         return access_token;
     }
 
+    /*
     public static final String oauth2token2(){
         try {
             URL url = new URL(API + "/oauth2/token");
@@ -157,10 +224,11 @@ public class API {
         }
         return null;
     }
+    */
 
     private static String getBase64Token() {
         String localtoken = OAUTH_CONSUMER_KEY + ":" + OAUTH_CONSUMER_SECRET;
-        localtoken = Base64.encodeToString(localtoken.getBytes(),Base64.NO_WRAP);
+        localtoken = Base64.encodeToString(localtoken.getBytes(), Base64.NO_WRAP);
         return localtoken;
     }
 

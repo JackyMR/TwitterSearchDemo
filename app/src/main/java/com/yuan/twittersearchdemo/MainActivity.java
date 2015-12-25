@@ -12,11 +12,14 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.yuan.twittersearchdemo.ui.DividerItemDecoration;
 import com.yuan.twittersearchdemo.utils.CommonUtil;
 import com.yuan.twittersearchdemo.adapter.SearchAdapter;
 import com.yuan.twittersearchdemo.api.API;
@@ -55,8 +58,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
                     try {
                         String token = API.oauth2token();
-                        if (TextUtils.isEmpty(token)) {
+                        if (!TextUtils.isEmpty(token)) {
                             spUtil.put(SpUtil.ACCESS_TOKEN, token);
+                        } else {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Snackbar.make(editText, "oauth failed", Snackbar.LENGTH_LONG).show();
+                                }
+                            });
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -65,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }).start();
     }
+
 
     private void initView() {
         editText = (EditText) findViewById(R.id.edit_text_search);
@@ -86,6 +97,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(adapter = new SearchAdapter(this, mData));
+        mRecyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        mRecyclerView.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                CommonUtil.hideInput(MainActivity.this);
+                return false;
+            }
+        });
 
         progressview = findViewById(R.id.lay_loading);
     }
@@ -112,6 +132,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Message msg = Message.obtain();
                 msg.what = len;
                 hanlder.sendMessageDelayed(msg, 500);
+            } else {
+                mData.clear();
+                adapter.notifyDataSetChanged();
             }
         }
 
@@ -158,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         protected List<com.yuan.twittersearchdemo.model.Status> doInBackground(String... params) {
             try {
-                return API.search(spUtil.getString(SpUtil.ACCESS_TOKEN), params[0], params[1], params[2], null);
+                return API.search2(spUtil.getString(SpUtil.ACCESS_TOKEN), params[0], params[1], params[2], null);
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
@@ -189,4 +212,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
     }
+
+
+    /*
+    private void test() {
+        BufferedInputStream bis = null;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            bis = new BufferedInputStream(this.getAssets().open("txt.txt"));
+            byte[] buffer = new byte[1024 * 8];
+            int len;
+            while ((len = bis.read(buffer, 0, buffer.length)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            SearchEntity entity = new SearchEntity(new JSONObject(new String(baos.toByteArray())));
+            Log.i("entity = " + entity.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                baos.close();
+                if (bis != null) {
+                    bis.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    */
 }

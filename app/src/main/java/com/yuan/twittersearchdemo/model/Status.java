@@ -3,12 +3,13 @@ package com.yuan.twittersearchdemo.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * Created by Yuan on 15/12/22.
  */
 public class Status implements Parcelable {
-
-    public Meta meta;
 
     public long id;
 
@@ -24,16 +25,34 @@ public class Status implements Parcelable {
 
     public long favorite_count;
 
-    public boolean favorited;
-
-    public boolean retweeted;
-
-    public String lang;
-
     public Status(){}
 
+    public Status(JSONObject json) throws JSONException {
+        if(json.has("id")){
+            this.id = json.getLong("id");
+        }
+        if(json.has("id_str")){
+            this.id_str = json.getString("id_str");
+        }
+        if(json.has("text")){
+            this.text = json.getString("text");
+        }
+        if(json.has("geo")){
+            this.geo = json.getString("geo");
+        }
+        if(json.has("retweet_count")){
+            this.retweet_count = json.getLong("retweet_count");
+        }
+        if(json.has("favorite_count")){
+            this.id = json.getLong("favorite_count");
+        }
+        if(json.has("user")){
+            this.user = new User(json.getJSONObject("user"));
+        }
+
+    }
+
     protected Status(Parcel in) {
-        meta = in.readParcelable(Meta.class.getClassLoader());
         id = in.readLong();
         id_str = in.readString();
         text = in.readString();
@@ -41,9 +60,6 @@ public class Status implements Parcelable {
         geo = in.readString();
         retweet_count = in.readLong();
         favorite_count = in.readLong();
-        favorited = in.readByte() != 0;
-        retweeted = in.readByte() != 0;
-        lang = in.readString();
     }
 
     public static final Creator<Status> CREATOR = new Creator<Status>() {
@@ -65,7 +81,6 @@ public class Status implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeParcelable(meta, flags);
         dest.writeLong(id);
         dest.writeString(id_str);
         dest.writeString(text);
@@ -73,48 +88,18 @@ public class Status implements Parcelable {
         dest.writeString(geo);
         dest.writeLong(retweet_count);
         dest.writeLong(favorite_count);
-        dest.writeByte((byte) (favorited ? 1 : 0));
-        dest.writeByte((byte) (retweeted ? 1 : 0));
-        dest.writeString(lang);
     }
 
-
-    public static class Meta implements Parcelable {
-
-        public String iso_language_code;
-
-        public String result_type;
-
-        public Meta() {
-        }
-
-        protected Meta(Parcel source) {
-            this.iso_language_code = source.readString();
-            this.result_type = source.readString();
-        }
-
-        public static final Creator<Meta> CREATOR = new Creator<Meta>() {
-            @Override
-            public Meta createFromParcel(Parcel source) {
-                Meta meta = new Meta(source);
-                return meta;
-            }
-
-            @Override
-            public Meta[] newArray(int size) {
-                return new Meta[size];
-            }
-        };
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel dest, int flags) {
-            dest.writeString(iso_language_code);
-            dest.writeString(result_type);
-        }
+    @Override
+    public String toString() {
+        return "Status{" +
+                ", id=" + id +
+                ", id_str='" + id_str + '\'' +
+                ", text='" + text + '\'' +
+                ", user=" + user +
+                ", geo='" + geo + '\'' +
+                ", retweet_count=" + retweet_count +
+                ", favorite_count=" + favorite_count +
+                '}';
     }
 }
