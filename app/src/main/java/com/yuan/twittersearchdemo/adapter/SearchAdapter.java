@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
 import com.yuan.twittersearchdemo.R;
 import com.yuan.twittersearchdemo.model.Status;
 
@@ -23,7 +24,7 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
 
     private List<Status> mData;
 
-    public SearchAdapter(@NonNull Context ctx,@NonNull List<Status> list){
+    public SearchAdapter(@NonNull Context ctx, @NonNull List<Status> list) {
         this.mContext = ctx;
         this.mData = list;
     }
@@ -40,6 +41,10 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
         Status entity = mData.get(position);
         holder.text_username.setText(entity.user.name);
         holder.text_content.setText(entity.text);
+        Picasso.with(mContext)
+                .load(entity.user.profile_image_url)
+                .placeholder(R.mipmap.icon_twitter)
+                .into(holder.img_portrait);
     }
 
     @Override
@@ -47,7 +52,7 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
         return (mData != null) ? mData.size() : 0;
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder{
+    static class ViewHolder extends RecyclerView.ViewHolder {
 
         public TextView text_username;
 

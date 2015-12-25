@@ -9,7 +9,7 @@ import org.json.JSONObject;
 /**
  * Created by Yuan on 15/12/22.
  */
-public class User implements Parcelable{
+public class User implements Parcelable {
 
     public long id;
 
@@ -25,29 +25,35 @@ public class User implements Parcelable{
 
     public String url;
 
-    public User(){}
+    public String profile_image_url;
 
-    public User(JSONObject json) throws JSONException{
-        if(json.has("id")){
+    public User() {
+    }
+
+    public User(JSONObject json) throws JSONException {
+        if (json.has("id")) {
             this.id = json.getLong("id");
         }
-        if(json.has("id_str")){
+        if (json.has("id_str")) {
             this.id_str = json.getString("id_str");
         }
-        if(json.has("name")){
+        if (json.has("name")) {
             this.name = json.getString("name");
         }
-        if(json.has("screen_name")){
+        if (json.has("screen_name")) {
             this.screen_name = json.getString("screen_name");
         }
-        if(json.has("location")){
+        if (json.has("location")) {
             this.location = json.getString("location");
         }
-        if(json.has("id_str")){
+        if (json.has("id_str")) {
             this.description = json.getString("description");
         }
-        if(json.has("id_str")){
+        if (json.has("id_str")) {
             this.url = json.getString("url");
+        }
+        if (json.has("profile_image_url")) {
+            this.profile_image_url = json.getString("profile_image_url");
         }
     }
 
@@ -59,6 +65,7 @@ public class User implements Parcelable{
         location = in.readString();
         description = in.readString();
         url = in.readString();
+        profile_image_url = in.readString();
     }
 
     public static final Creator<User> CREATOR = new Creator<User>() {
@@ -87,6 +94,7 @@ public class User implements Parcelable{
         dest.writeString(location);
         dest.writeString(description);
         dest.writeString(url);
+        dest.writeString(profile_image_url);
     }
 
     @Override
@@ -99,6 +107,7 @@ public class User implements Parcelable{
                 ", location='" + location + '\'' +
                 ", description='" + description + '\'' +
                 ", url='" + url + '\'' +
+                ", profile_image_url = " + profile_image_url + '\'' +
                 '}';
     }
 }
