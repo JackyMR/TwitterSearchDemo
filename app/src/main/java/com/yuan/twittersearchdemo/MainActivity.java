@@ -1,5 +1,11 @@
 package com.yuan.twittersearchdemo;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
@@ -24,6 +30,7 @@ import com.yuan.twittersearchdemo.utils.CommonUtil;
 import com.yuan.twittersearchdemo.adapter.SearchAdapter;
 import com.yuan.twittersearchdemo.api.API;
 import com.yuan.twittersearchdemo.model.Status;
+import com.yuan.twittersearchdemo.utils.Log;
 import com.yuan.twittersearchdemo.utils.SpUtil;
 
 import java.io.IOException;
@@ -46,69 +53,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private SpUtil spUtil;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        initView();
-        spUtil = SpUtil.getInstance(this);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
-                    try {
-                        String token = API.oauth2token();
-                        if (!TextUtils.isEmpty(token)) {
-                            spUtil.put(SpUtil.ACCESS_TOKEN, token);
-                        } else {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Snackbar.make(editText, "oauth failed", Snackbar.LENGTH_LONG).show();
-                                }
-                            });
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }).start();
-    }
+    private String info_location;
 
-
-    private void initView() {
-        editText = (EditText) findViewById(R.id.edit_text_search);
-        editText.addTextChangedListener(watcher);
-        editText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    if (editText.getText().toString().length() > 0) {
-                        excuteAsync(editText.getText().toString());
-                        CommonUtil.hideInput(MainActivity.this);
-                    }
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mRecyclerView.setAdapter(adapter = new SearchAdapter(this, mData));
-        mRecyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        mRecyclerView.setOnTouchListener(new View.OnTouchListener() {
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                CommonUtil.hideInput(MainActivity.this);
-                return false;
-            }
-        });
-
-        progressview = findViewById(R.id.lay_loading);
-    }
+    private LocationManager locationManager;
 
     /**
      * 用于监听输入变化并配合hanlder请求网络
@@ -156,9 +103,105 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     };
 
+    private LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            Log.i("location = onLocationChanged " + location.toString());
+            if(!(location.getLatitude() == 0 && location.getLongitude() == 0)) {
+                info_location = location.getLatitude() + "," + location.getLongitude() + "," + location.getAccuracy() + "m";
+            }
+            locationManager.removeUpdates(locationListener);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            //Log.i("location = onStatusChanged " + provider + "/" + status + "/" + extras.toString());
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            //Log.i("location = onProviderEnabled " + provider);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            //Log.i("location = onProviderEnabled " + provider);
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        initView();
+        spUtil = SpUtil.getInstance(this);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
+                    try {
+                        String token = API.oauth2token();
+                        if (!TextUtils.isEmpty(token)) {
+                            spUtil.put(SpUtil.ACCESS_TOKEN, token);
+                        } else {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Snackbar.make(editText, "oauth failed", Snackbar.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
+        initLocation();
+    }
+
+    private void initView() {
+        editText = (EditText) findViewById(R.id.edit_text_search);
+        editText.addTextChangedListener(watcher);
+        editText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                    if (editText.getText().toString().length() > 0) {
+                        excuteAsync(editText.getText().toString());
+                        CommonUtil.hideInput(MainActivity.this);
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.setAdapter(adapter = new SearchAdapter(this, mData));
+        mRecyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+        mRecyclerView.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                CommonUtil.hideInput(MainActivity.this);
+                return false;
+            }
+        });
+
+        progressview = findViewById(R.id.lay_loading);
+    }
+
+    private void initLocation() {
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+    }
+
     private void excuteAsync(String content) {
         searchAsync = new SearchAsync();
-        searchAsync.execute(content, null, CommonUtil.getLocalLang());
+        searchAsync.execute(content, info_location, CommonUtil.getLocalLang());
     }
 
     @Override
