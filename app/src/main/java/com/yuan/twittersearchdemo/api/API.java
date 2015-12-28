@@ -35,12 +35,15 @@ public class API {
 
     public static final String API = "https://api.twitter.com";
 
+    /**
+     * Twitter创建一个应用生成的key
+     */
     public static final String OAUTH_CONSUMER_KEY = "OGEcFxjmAI1RTsnzjf5mYMky0";
 
     public static final String OAUTH_CONSUMER_SECRET = "14UNt7btzWOH0dB3UtpeGDGDExF01W5axKdzNtui5WqAk8gwvD";
 
     /**
-     * 使用okHTTP解析返回的json会抛出"org.json.JSONException: End of input at character 0 of "
+     * 使用okHTTP
      * @param token
      * @param webargs
      * @return
@@ -58,7 +61,7 @@ public class API {
             url.append("&lang=" + Uri.encode(webargs[2]));
         }
         if (TextUtils.isEmpty(webargs[3])) {
-            webargs[3] = "2";
+            webargs[3] = "10";
         }
         url.append("&count=" + Uri.encode(webargs[3]));
 
@@ -77,24 +80,36 @@ public class API {
         Response response = client.newCall(request).execute();
         ResponseBody body = response.body();
         Log.i("res = " + "code " + response.code() + "/ header " + response.headers());
-        Log.i("res body = " + "\n" + body.string());
+        List<Status> list = null;
         if (response.isSuccessful()) {
-            //Gson gson = new Gson();
-            //SearchEntity entity = gson.fromJson(body.string(), SearchEntity.class);
-            SearchEntity entity = null;
+            String bodystring = body.string();
+            Log.i("res body = " + "\n" + bodystring);
+            Gson gson = new Gson();
             try {
-                entity = new SearchEntity(new JSONObject(body.string()));
-            } catch (JSONException e) {
+                SearchEntity entity = gson.fromJson(bodystring, SearchEntity.class);
+//            SearchEntity entity = null;
+//            try {
+//                entity = new SearchEntity(new JSONObject(body.string()));
+//            } catch (JSONException e) {
+//                e.printStackTrace();
+//            }
+              Log.i("entity = " + entity);
+              list = entity.statuses;
+            }catch (Exception e){
                 e.printStackTrace();
             }
-            Log.i("entity = " + entity);
-            body.close();
-            return entity.statuses;
         }
         body.close();
-        return null;
+        return list;
     }
 
+    /**
+     * UrlConnection
+     * @param token
+     * @param webargs
+     * @return
+     * @throws IOException
+     */
     public static List<Status> search2(String token, String... webargs) throws IOException {
         StringBuilder url = new StringBuilder(API + "/1.1/search/tweets.json?");
         if (!TextUtils.isEmpty(webargs[0])) {
@@ -121,6 +136,7 @@ public class API {
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Authorization", "Bearer " + token);
 
+        List<Status> list = null;
         if (connection.getResponseCode() == 200) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
@@ -135,7 +151,6 @@ public class API {
             Log.i("body " + body);
             SearchEntity entity = null;
 
-            //自己写解析的正确
 //            try {
 //                entity = new SearchEntity(new JSONObject(body));
 //            } catch (JSONException e) {
@@ -145,9 +160,9 @@ public class API {
             Gson gson = new Gson();
             entity = gson.fromJson(body,SearchEntity.class);
             Log.i("entity = " + entity);
-            return entity.statuses;
+            list = entity.statuses;
         }
-        return null;
+        return list;
     }
 
     public static final String oauth2token() throws IOException {

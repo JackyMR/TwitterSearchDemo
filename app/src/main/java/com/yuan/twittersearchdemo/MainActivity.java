@@ -1,12 +1,14 @@
 package com.yuan.twittersearchdemo;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.support.design.widget.Snackbar;
@@ -20,7 +22,6 @@ import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -107,10 +108,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onLocationChanged(Location location) {
             Log.i("location = onLocationChanged " + location.toString());
-            if(!(location.getLatitude() == 0 && location.getLongitude() == 0)) {
+            if (!(location.getLatitude() == 0 && location.getLongitude() == 0)) {
                 info_location = location.getLatitude() + "," + location.getLongitude() + "," + location.getAccuracy() + "m";
             }
-            locationManager.removeUpdates(locationListener);
+            if (checkLocationPermission()) {
+                locationManager.removeUpdates(locationListener);
+            }
         }
 
         @Override
@@ -135,10 +138,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         initView();
         spUtil = SpUtil.getInstance(this);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
+
+        //获取oauthtoken
+        if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
                     try {
                         String token = API.oauth2token();
                         if (!TextUtils.isEmpty(token)) {
@@ -155,8 +160,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         e.printStackTrace();
                     }
                 }
-            }
-        }).start();
+
+            }).start();
+        }
 
         initLocation();
     }
@@ -194,9 +200,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         progressview = findViewById(R.id.lay_loading);
     }
 
+
     private void initLocation() {
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+        if (checkLocationPermission()) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+        }
+    }
+
+    /**
+     * Android 6.0 需要验证权限
+     *
+     * @return
+     */
+    @TargetApi(Build.VERSION_CODES.M)
+    private boolean checkLocationPermission() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            return (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED);
+        }
+        return true;
     }
 
     private void excuteAsync(String content) {
@@ -224,7 +246,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         protected List<com.yuan.twittersearchdemo.model.Status> doInBackground(String... params) {
             try {
-                return API.search2(spUtil.getString(SpUtil.ACCESS_TOKEN), params[0], params[1], params[2], null);
+                return API.search(spUtil.getString(SpUtil.ACCESS_TOKEN), params[0], params[1], params[2], null);
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
@@ -241,6 +263,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mData.clear();
                 mData.addAll(data);
                 adapter.notifyDataSetChanged();
+                if (mData.isEmpty()) {
+                    Snackbar.make(editText, "none", Snackbar.LENGTH_LONG).show();
+                }
             } else {
                 Snackbar.make(editText, "none", Snackbar.LENGTH_LONG).show();
             }
@@ -251,7 +276,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             super.onCancelled();
             progressview.setVisibility(View.GONE);
             mRecyclerView.setVisibility(View.VISIBLE);
-            Snackbar.make(editText, "task canceled", Snackbar.LENGTH_LONG).show();
+            //Snackbar.make(editText, "task canceled", Snackbar.LENGTH_LONG).show();
         }
 
     }
