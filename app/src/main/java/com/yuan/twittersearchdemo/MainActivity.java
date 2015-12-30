@@ -40,6 +40,8 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
+    public static final int REQUEST_READ_CONTACTS = 0xFFFFFF;
+
     private EditText editText;
 
     private RecyclerView mRecyclerView;
@@ -111,9 +113,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (!(location.getLatitude() == 0 && location.getLongitude() == 0)) {
                 info_location = location.getLatitude() + "," + location.getLongitude() + "," + location.getAccuracy() + "m";
             }
-            if (checkLocationPermission()) {
-                locationManager.removeUpdates(locationListener);
-            }
+            locationManager.removeUpdates(locationListener);
         }
 
         @Override
@@ -202,9 +202,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     private void initLocation() {
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (checkLocationPermission()) {
+            locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            Log.i("initLocation");
         }
     }
 
@@ -215,10 +216,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     @TargetApi(Build.VERSION_CODES.M)
     private boolean checkLocationPermission() {
-        if (Build.VERSION.SDK_INT >= 23) {
-            return (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
         }
-        return true;
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        }
+
+        if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
+                && shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            Snackbar.make(editText, "Location permissions are needed", Snackbar.LENGTH_INDEFINITE)
+                    .setAction(android.R.string.ok, new View.OnClickListener() {
+                        @Override
+                        @TargetApi(Build.VERSION_CODES.M)
+                        public void onClick(View v) {
+                            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_READ_CONTACTS);
+                        }
+                    });
+        } else {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_READ_CONTACTS);
+        }
+        return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        logOnReqPermission(permissions,grantResults);
+        if (requestCode == REQUEST_READ_CONTACTS) {
+            if (grantResults.length == 2
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                    && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                Snackbar.make(editText, "permission success", Snackbar.LENGTH_LONG).show();
+                initLocation();
+            }
+        }
+    }
+
+    private void logOnReqPermission(String[] permissions, int[] grantResults){
+        StringBuilder sb = new StringBuilder();
+        for (String s : permissions){
+            sb.append(s + "/");
+        }
+        StringBuilder sb2 = new StringBuilder();
+        for(Integer i : grantResults){
+            sb2.append(String.valueOf(i) + "/");
+        }
+        Log.i("onRequestPermissionsResult " + "permissions = " + sb.toString() + " grantResults " + sb2.toString());
     }
 
     private void excuteAsync(String content) {
