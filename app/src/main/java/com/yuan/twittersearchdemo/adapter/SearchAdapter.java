@@ -20,24 +20,36 @@ import java.util.List;
  */
 public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder> {
 
+    public interface OnItemClickListener{
+        void onItemClick(View view,int position);
+    }
+
     private Context mContext;
 
     private List<Status> mData;
+
+    private OnItemClickListener listener;
 
     public SearchAdapter(@NonNull Context ctx, @NonNull List<Status> list) {
         this.mContext = ctx;
         this.mData = list;
     }
 
+    public void setOnItemViewClickListener(OnItemClickListener listener){
+        this.listener = listener;
+    }
+
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        ViewHolder holder = new ViewHolder(LayoutInflater.from(mContext)
-                .inflate(R.layout.item_list_search, parent, false));
+        View itemView = LayoutInflater.from(mContext)
+                .inflate(R.layout.item_list_search, parent, false);
+        ViewHolder holder = new ViewHolder(itemView);
         return holder;
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        holder.itemView.setOnClickListener(v -> listener.onItemClick(holder.itemView,position));
         Status entity = mData.get(position);
         holder.text_username.setText(entity.user.name);
         holder.text_content.setText(entity.text);
@@ -54,6 +66,8 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
 
     static class ViewHolder extends RecyclerView.ViewHolder {
 
+        public View itemView;
+
         public TextView text_username;
 
         public TextView text_content;
@@ -62,6 +76,7 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.ViewHolder
 
         public ViewHolder(View itemView) {
             super(itemView);
+            this.itemView = itemView;
             text_username = (TextView) itemView.findViewById(R.id.text_username);
             text_content = (TextView) itemView.findViewById(R.id.text_content);
             img_portrait = (ImageView) itemView.findViewById(R.id.img_portrait);

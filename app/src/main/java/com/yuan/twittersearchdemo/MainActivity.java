@@ -3,6 +3,7 @@ package com.yuan.twittersearchdemo;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -19,12 +20,9 @@ import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import com.yuan.twittersearchdemo.ui.DividerItemDecoration;
 import com.yuan.twittersearchdemo.utils.CommonUtil;
@@ -141,27 +139,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //获取oauthtoken
         if (TextUtils.isEmpty(spUtil.getString(SpUtil.ACCESS_TOKEN))) {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
+            new Thread(() ->{
                     try {
                         String token = API.oauth2token();
                         if (!TextUtils.isEmpty(token)) {
                             spUtil.put(SpUtil.ACCESS_TOKEN, token);
                         } else {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Snackbar.make(editText, "oauth failed", Snackbar.LENGTH_LONG).show();
-                                }
-                            });
+                            runOnUiThread(() ->
+                                    Snackbar.make(editText, "oauth failed", Snackbar.LENGTH_LONG).show()
+                            );
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
 
-            }).start();
+            ).start();
         }
 
         initLocation();
@@ -170,9 +163,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initView() {
         editText = (EditText) findViewById(R.id.edit_text_search);
         editText.addTextChangedListener(watcher);
-        editText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+        editText.setOnEditorActionListener((v,actionId,event) ->{
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                     if (editText.getText().toString().length() > 0) {
                         excuteAsync(editText.getText().toString());
@@ -181,20 +172,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     return true;
                 }
                 return false;
-            }
         });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(adapter = new SearchAdapter(this, mData));
         mRecyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
-        mRecyclerView.setOnTouchListener(new View.OnTouchListener() {
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
+        mRecyclerView.setOnTouchListener((view,event) ->{
                 CommonUtil.hideInput(MainActivity.this);
                 return false;
             }
+        );
+        adapter.setOnItemViewClickListener((view, position) -> {
+            Status status = mData.get(position);
+            String url = CommonUtil.getUrlStrInString(status.text);
+
+            if(TextUtils.isEmpty(url)){
+                Snackbar.make(editText,"no content to read",Snackbar.LENGTH_LONG).show();
+                return;
+            }
+
+            Intent intent = new Intent(MainActivity.this,WebActivity.class);
+            intent.putExtra("url",url);
+            startActivity(intent);
         });
 
         progressview = findViewById(R.id.lay_loading);
@@ -245,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        logOnReqPermission(permissions,grantResults);
+        logOnReqPermission(permissions, grantResults);
         if (requestCode == REQUEST_READ_CONTACTS) {
             if (grantResults.length == 2
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
@@ -256,13 +256,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void logOnReqPermission(String[] permissions, int[] grantResults){
+    private void logOnReqPermission(String[] permissions, int[] grantResults) {
         StringBuilder sb = new StringBuilder();
-        for (String s : permissions){
+        for (String s : permissions) {
             sb.append(s + "/");
         }
         StringBuilder sb2 = new StringBuilder();
-        for(Integer i : grantResults){
+        for (Integer i : grantResults) {
             sb2.append(String.valueOf(i) + "/");
         }
         Log.i("onRequestPermissionsResult " + "permissions = " + sb.toString() + " grantResults " + sb2.toString());
